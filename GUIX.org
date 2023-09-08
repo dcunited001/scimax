@@ -6,17 +6,94 @@
 #+property: header-args:sh     :tangle-mode (identity #o750) :mkdirp yes
 #+property: header-args:bash   :tangle-mode (identity #o750) :mkdirp yes
 
-* Org Babel
 
-Noweb is confusing yes. Most of the =noweb-ref= can be avoided if it's set as an
-environment variable in =.profile=.
+#+BEGIN_QUOTE
+TODO: finish notes on setting up scimax
+#+END_QUOTE
 
-** Noweb Templates
+I want to start working in Jupyter more. I definitely prefer the ZMQ
+Kernel workflow, which doesn't require a browser, a localhost port or
+restarting server. Lacking Emacs bindings in the browser is not all
+that bad -- I have a jupyter cheatsheet for that -- it's when you try
+to cut text and close the tab with =C-w= that gets me.
+
+I forked scimax to use it as a second Emacs config. Scimax has a ton
+of great features for packages I want to use, like =org-ref= and
+=emacs-jupyter=. A well-configured Emacs environment to compare
+against tightens your feedback loops so you can more quickly integrate
+features into good habits before repetitive reactions become bad
+habits. 
+
+Judging from the first ten or so files that scimax loads, Scimax is
+written to help teach =emacs-lisp=. Reading through the code and docs
+in [[https://github.com/jkitchin/scimax/tree/master/scimax.el][scimax.el]], [[https://github.com/jkitchin/scimax/tree/master/scimax.org][scimax.org]] and [[https://github.com/jkitchin/scimax/tree/master/scimax-notebook.org][scimax-notebook.org]] would be invaluable
+for Emacs noobs. The hydras make features and commands discoverable.
+The docs drive new users to these in the interface. The keybindings
+like =C-M-f= and =M-{= work in most major-mode exactly how you expect,
+whether =*-ts-mode= is on. As a new user, you need to learn these
+quickly, since the characters they bind to are used as mnemonics for
+other packages. All these main navigation commands are covered in a
+hydra in =scimax.el= which is great.  I prefer transients once I'm
+comfortable with the packages -- but hydras are also much easier to
+write and tweak. It can really be done in 5 minutes in a single
+file. Navigation features like this end up helping more than
+=which-keys= for learning new package commands, though the latter has
+variables like
+
+
+* Setup
+
+
+When loading scimax through chemacs as a profile, I'm getting a
+warning about =user-emacs-directory= being in the =load-path=. 
+
++So I split out the configuration into two directories.+
+
+So I decided I should follow the instructions before my environment's
+needs make things any more complicated. 
+
+ (see [[https://github.com/jkitchin/scimax/tree/master/README.org#Manual-Installation][Manual Installation]] in the Scimax readme)
+
+Scimax is simple to setup and install. It should be compatible with
+any existing non-chemacs installation from scratch. Getting it to jive
+with environment management tools like Guix, Direnv, Pyenv, Chemacs,
+Emacs, etc convolutes things quite a bit. The main value in this
+org-file is to document edge cases in configs. In particular,
+[[https://github.com/emacs-jupyter/jupyter][emacs-jupyter/jupyter]] overrides =default-directory= in
+=jupyter-command=, which complicates config for pyenv. I believe this
+is so the Emacs package can always guarantee interactions with jupyter
+are launched from a consistent binary -- whichever python & jupyter it
+finds from the =user-emacs-directory= path where its commands are
+launched.
+
+** Environment
+
++ A guix profile with minimal dependencies (no python/jupyter)
++ Pyenv with a  virtual env =.emacs.scimax=
++ 
++ Using =direnv= and =envrc=
++ 
+
+***** TODO finish description of the environment
+
+** Org Babel
+
+Noweb is confusing yes. Most of the =noweb-ref= can be avoided if it's
+set as an environment variable in =.profile=, but it's still used for
+tangling the configuration files.
+
+*** Noweb Templates
 
 The scimax installation directory
 
 #+begin_src emacs-lisp :noweb-ref emacs-scimax
 .emacs.scimax
+#+end_src
+
+The =user-emacs-directory=
+
+#+begin_src emacs-lisp :noweb-ref emacs-sci
+.emacs.sci
 #+end_src
 
 The name of the scimax profile
@@ -44,7 +121,15 @@ are in the =scimax.scm= manifest.
     "git"
     "git:send-email"
 
-    ;; "emacs-zmq"
+    "emacs-no-littering"
+    "emacs-ef-themes"
+    "emacs-envrc"
+
+    "emacs-zmq"
+    
+    "emacs-jupyter"
+    
+    ;; "jupyter" ;; no python/jupyter here
 
     "aspell"
     "aspell-dict-en"
@@ -90,27 +175,44 @@ a similar codebase for Guix Home should support both Arch and Guix System.
 Starting scimax without systemd
 
 #+begin_src sh :tangle ~/.bin/scimax :noweb yes :shebang #!/bin/sh
-export GUIX_SOURCE=$_ECTO/guix/guix
-export EMACS_SOURCE=$_ECTO/emacs/emacs/src
-export SCIMAX_PROFILE=$GUIX_EXTRA/<<scimax-profile>>/<<scimax-profile>>
+export GUIX_SOURCE="$_ECTO/guix/guix"
+export EMACS_SOURCE="$_ECTO/emacs/emacs/src"
+export EMACS_SCIMAX="$HOME/<<emacs-scimax>>"
+export SCIMAX_PROFILE="$GUIX_EXTRA/<<scimax-profile>>/<<scimax-profile>>"
 
 guix shell -E "^EMAIL$" \
      -E 'EMACS_SOURCE' \
      -E 'GUIX_SOURCE' \
+     -E 'EMACS_SCIMAX' \
+     -p "$SCIMAX_PROFILE" -- \
+     emacs -q -l "$EMACS_SCIMAX/init-scimax.el" "$@"
+#+end_src
+
+#+begin_src sh :tangle ~/.bin/scimax-chemacs :noweb yes :shebang #!/bin/sh
+export GUIX_SOURCE="$_ECTO/guix/guix"
+export EMACS_SOURCE="$_ECTO/emacs/emacs/src"
+export EMACS_SCIMAX="$HOME/<<emacs-scimax>>"
+export SCIMAX_PROFILE="$GUIX_EXTRA/<<scimax-profile>>/<<scimax-profile>>"
+
+guix shell -E "^EMAIL$" \
+     -E 'EMACS_SOURCE' \
+     -E 'GUIX_SOURCE' \
+     -E 'EMACS_SCIMAX' \
      -p "$SCIMAX_PROFILE" -- \
      emacs --with-profile "<<scimax-profile>>" "$@"
 #+end_src
 
-
 Starting scimax-client
 
 #+begin_src sh :tangle ~/.bin/scimaxclient :noweb yes :shebang #!/bin/sh
-export SCIMAX_PROFILE=$GUIX_EXTRA/<<scimax-profile>>/<<scimax-profile>>
+export GUIX_SOURCE="$_ECTO/guix/guix"
+export EMACS_SOURCE="$_ECTO/emacs/emacs/src"
+export EMACS_SCIMAX="$HOME/<<emacs-scimax>>"
+export SCIMAX_PROFILE="$GUIX_EXTRA/<<scimax-profile>>/<<scimax-profile>>"
 
 guix shell -E "^EMAIL$" \
      -p "$SCIMAX_PROFILE" -- \
      emacsclient -c "$@"
-
 #+end_src
 
 *** Systemd Unit
@@ -137,6 +239,7 @@ Environment=EMAIL=aionfork@gmail.com
 Environment=SSH_AUTH_SOCK=/run/user/1000/gnupg/S.gpg-agent.ssh
 Environment=GUIX_SOURCE=/data/ecto/guix/guix
 Environment=EMACS_SOURCE=/data/ecto/emacs/emacs/src
+Environment=EMACS_SCIMAX=<<emacs-scimax>>
 #Environment=GUIX_EXTRA=/home/user/.guix-extra-profiles
 
 #Type=notify #requires Notify
@@ -144,8 +247,9 @@ ExecStart=/bin/bash -c \
 "guix shell -E '^EMAIL$' \
 -E 'EMACS_SOURCE' \
 -E 'GUIX_SOURCE' \
+-E 'EMACS_SCIMAX' \
 -p $GUIX_EXTRA/<<scimax-profile>>/<<scimax-profile>> -- \
-emacs --fg-daemon"
+emacs"
 ExecStartPre=/bin/bash -c "notify-send 'Starting Emacs Service...'"
 ExecStartPost=/bin/bash -c "notify-send 'Emacs Service Started Successfully'"
 
@@ -170,10 +274,138 @@ WantedBy=default.target
 
 ***** TODO document an emacs service running under shepherd
 
-* Emacs
+* Emacs Config
 
-** Chemacs
+** With Guix Profile
 
+Something in =emacs -q -l init-scimax.el= is overwriting my edits to
+=package-user-dir=. For now, scimax is installing these into
+=~/.emacs.d/elpa=. 
+
+#+BEGIN_SRC emacs-lisp :tangle init-scimax.el :noweb yes
+;; (string-join
+;; (list "~" (or (getenv "EMACS_SCIMAX") ".emacs-scimax")) "/")
+;; (format "~/%s" (or (getenv "EMACS_SCIMAX")
+;;				      ".emacs-scimax"))
+
+(let ((scimax-path (or (getenv "EMACS_SCIMAX")
+		       (expand-file-name "~/<<emacs-scimax>>"))))
+  (setq scimax-dir (expand-file-name scimax-path)
+	scimax-theme 'ef-winter
+	;; scimax-theme 'leuven-dark
+	;; package-user-dir (expand-file-name "elpa"  scimax-dir)
+	user-emacs-directory scimax-path)
+
+  ;; this ensures common packages write to ./var and ./etc inside
+  ;; user-emacs-directory
+  (require 'no-littering)
+  (add-to-list 'load-path scimax-dir))
+
+;; emacs29 splits this into:
+;;
+;; - native-comp-jit-deny-list
+;; - native-comp-bootstrap-deny-list
+(setq native-comp-deferred-compilation-deny-list nil)
+
+;; ===================================================================
+;; customize faces for 
+
+;; these aren't used at the moment,
+;; since org-src-block-faces can use a face spec
+(defface dc/org-src-python nil
+  "Face for python source blocks")
+(defface dc/org-src-emacs-lisp nil
+  "Face for emacs-lisp source blocks")
+(defface dc/org-src-sh nil
+  "Face for sh source blocks")
+(defface dc/org-src-ipython nil
+  "Face for ipython source blocks")
+(defface dc/org-src-jupyter-python nil
+  "Face for jupyter-python source blocks")
+
+;; this provides a way for org-src-block-faces to be set using symbols
+;; for ef-themes colors
+(defvar dc/org-src-block-colors
+  '(("emacs-lisp" (:background bg-changed-faint :extend t))
+    ("sh" (:background bg-removed-faint :extend t))
+    ("python" (:background bg-added-faint :extend t) )
+    ("ipython" (:background bg-inactive :extend t))
+    ("jupyter-python" (:background bg-inactive :extend t)))
+  "The ef-themes color symbols to use for org blocks of specific
+  languages. This may require refreshing the font-lock in the
+  buffer. Faces should be set to :extend once merged")
+
+(defun dc/org-src-block-get-face-spec (lang+spec &optional color)
+  (if-let* ((this-lang (car lang+spec))
+	    (this-spec (cadr lang+spec))
+	    (this-color (plist-get this-spec :background))
+	    (color (or color (ef-themes-get-color-value this-color)))
+	    (facesym-name (format "dc/org-src-%s" this-lang))
+	    (facesym (or (intern-soft facesym-name)
+			 (intern facesym-name)))
+	    ;; (block-face (get facesym 'face))
+	    (block-spec (plist-put (cl-copy-list this-spec)
+				   :background color)))
+
+      ;; the block-spec can simply be returned. although org-src-block
+      ;; can also be set to faces, the colors I want from ef-themes
+      ;; are not faces per se
+      (list this-lang block-spec)
+    (unless this-color (user-error "%s: face spec requires :background" this-lang))
+    (unless color (user-error "%s: ef-themes color is nil" this-lang))
+    (unless facesym (user-error "%s: block-face is nil" this-lang))))
+
+(defun dc/org-src-block-set-faces ()
+  (interactive)
+  (setq org-src-block-faces
+	(mapcar #'dc/org-src-block-get-face-spec dc/org-src-block-colors)))
+
+(add-hook 'ef-themes-post-load-hook #'dc/org-src-block-set-faces)
+
+;; setup UI/UX after every
+(defun dc-sci/setup-look-and-feel ()
+  ;; (ef-themes-select 'ef-winter)
+  
+  (rainbow-mode)
+  (rainbow-delimiters-mode)
+  (highlight-symbol-mode))
+
+(add-hook 'window-setup-hook #'dc-sci/setup-look-and-feel)
+
+;; ===================================================================
+;; setup scimax
+
+(require 'init)
+
+(and (require 'envrc)
+     (envrc-global-mode))
+
+;; ===================================================================
+
+(unless (featurep 'scimax-jupyter)
+  (warn "module scimax-jupyter not loaded"))
+
+(if-let ((jp (executable-find "jupyter")))
+    (message "Found jupyter: %s" jp)
+  (warn "Couldn't find jupyter:"))
+#+END_SRC
+
+After setting =scimax-dir=, the =no-littering= package changes common
+paths to further containerize the profile. 
+
+*** Customizations
+
+#+BEGIN_SRC emacs-lisp
+custom-file
+#+END_SRC
+
+#+RESULTS:
+: ~/.emacs.scimax/user/custom.el
+
+** With Chemacs
+
+This doesn't seem to work out with the Guix profile.
+ 
 Add an entry to =.emacs.profiles.el= to load the profile with chemacs.
 
 #+begin_example emacs-lisp
@@ -190,12 +422,245 @@ Set =.emacs.profile= to "scimax" if you want it to be default. However, if you
 are installing the emacs environment with Guix, then emacs and its client must
 be launched with =guix shell=
 
+* Starting Emacs
+
+** Chemacs
+
 ** MELPA
 
 Once started the =init.el= will begin contacting ELPA to download and compile
-dependencies.
+dependencies. You might get the =emacs-jupyter= compilation error below.
+
+** Font
+
+Guix doesn't have the =Source Code Pro= font, so you'll need to change that
+unless it can be found by your distribution. I've changed the default to =Noto
+Sans=.
+
+* Issues
+
+** ZeroMQ
+
+This seems to have resolved itself after ensuring that scimax was
+being loaded properly 
+
+That is, from Guix without Chemacs, I'm runing =emacs -q -l
+init-scimax.el=, using Pyenv with a venv in =emacs.scimax=. Once
+things are set up for =init.el= and packages are compiled/loaded, then
+the ZeroMQ issues disappeared.
+
+Also, the process tree now shows =python= in the proper process tree.
+
+#+BEGIN_QUOTE
+bash───scimax───guix─┬─.emacs-29.0.92-─┬─.emacs-29.0.92-───3*[{.emacs-29.0.92-}]
+│                 ├─aspell
+│                 ├─emacsql-sqlite
+│                 ├─python3───10*[{python3}]
+│                 └─3*[{.emacs-29.0.92-}]
+└─16*[{guix}]
+#+END_QUOTE
+
+And =M-x list-processes= shows
+
+#+BEGIN_QUOTE
+jupyter-kernel-scimax-ipykernel 3868822 run      *jupyter-kernel[scimax-ipykernel]* 
+
+/data/lang/.pyenv/versions/3.10.11/envs/scimax-ipykernel-3.10.11/bin/python3 \
+  -m ipykernel_launcher -f /home/me/.local/share/jupyter/runtime/emacs-kernel-s6J0eI.json
+
+zmq             3868843 run      *zmq*-686742             
+
+/gnu/store/ip70sppv1xkgvf2ssms5arkaa40r5zba-emacs-next-pgtk-29.0.92/bin/emacs -Q \
+ -batch -L /gnu/store/s0r9y4mvrzdkxh0rx9y8pa978585ylbj-emacs-zmq-1.0.0/share/emacs/site-lisp/zmq-1.0.0/ -l
+#+END_QUOTE
 
 
-* Jupyter
+*** Can't connect to ZMQ
 
-**
+For some reason, the kernels are starting, but getting this error.
+
+#+begin_quote
+zmq.error.ZMQError: Address already in use (addr='tcp://127.0.0.1:36647')
+#+end_quote
+
+The processes don't show in =M-x list-processes=, but the scimax process tree can be shown with
+
+#+begin_src sh
+scimax_pid="$(pgrep -fa emacs | grep -e '--with-profile scimax' | tail -n1 | cut -f1 -d' ')"
+# pstree $scimax_pid
+
+scimax_pid="$(pgrep -fa emacs | grep -e 'guix shell.*--with-profile scimax' | tail -n1 | cut -f1 -d' ')"
+pstree $scimax_pid
+# or: to see everything adjacent
+# pstree -H $scimax_pid -h
+#+end_src
+
+#+RESULTS:
+| guix-+-.emacs-29.0.92--+-aspell |   |                     |                 |
+|                                 |   |                     | -emacsql-sqlite |
+|                                 |   | `-{.emacs-29.0.92-} |                 |
+| `-16*[{guix}]                   |   |                     |                 |
+
+However, they're getting forked from =pyenv= but directly from my user's
+systemd. They aren't owned by emacs.
+
+#+begin_quote
+python3───11*[{python3}]
+#+end_quote
+
+** emacs-jupyter compilation
+
+Depending on how you have python setup, then =emacs-jupyter= may run into this
+compilation error:
+
+#+begin_quote
+error("Can't obtain kernelspecs from jupyter shell command")
+jupyter-available-kernelspecs(nil)
+#+end_quote
+
+The rest of the notes on this relate to only my own installation: trying to
+combine direnv, pyenv and poetry is really complicated.
+
+For me, this is because =pyenv= uses shims like =$PYENV_ROOT/.shims/jupyter=.
+It's failing because of how =(jupyter-available-kernelspecs t)= invokes
+=(process-call ...)= to run the command circumvents =default-directory= to run
+from =user-emacs-directory= but also seems to fail when running
+=$PYENV_ROOT/.shims/jupyter= as a script.
+
+So =emacs-jupyter= can't directly invoke =jupyter kernelspecs list=:
+
+#+begin_quote
+Traceback (most recent call last):
+File "/usr/bin/jupyter", line 5, in <module>
+from jupyter_core.command import main
+ModuleNotFoundError: No module named 'jupyter_core'
+#+end_quote
+
+There are several ways around this, but it really depends on your personal
+environment. There's a few things to note:
+
+*** How Path is constructed for Guix Shell
+
+When loading emacs from guix shell, it prepends to =$PATH=, so running =echo
+$PATH | sed -e 's/:/\n:/g'= shows:
+
+#+begin_quote
+/gnu/store/sjsv4jdcp0fkijnm23n31brx0ki7ls0m-profile/bin
+:/home/me/.config/guix/current/bin
+:/home/me/.guix-extra-profiles/academic/academic/bin
+:/home/me/.nix-profile/bin
+:/data/lang/.pyenv/shims
+:/data/lang/.pyenv/bin
+:/home/me/.npm-global/bin
+:/home/me/.bin
+#+end_quote
+
+There are a few ways to get emacs-jupyter to run =(jupyter-command
+...)= properly. Scimax does contain [[github:purcell/envrc][purcell/envrc]], so that's already
+installed. 
+
+
+... It just needs to be activated with =(global-envr
+
+***** TODO check for  =envrc= is not in the load-path now
+
+Methods 1 and 3 work, but it depends on whether you care about =jupyter=
+commands falling through into the Guix profile's =PATH= when you don't have a
+=python= loaded via =direnv=. To me, that's more confusing and I should always
+have a =virtualenv=. So I prefer the latter.
+
+**** 1. Adding jupyter to the =scimax= guix profile
+
+For the sake of keeping the Guix profile minimal, I'd rather modify the python
+path with =pyenv=, =venv= and =direnv=.
+
+So, if you install python in the =scimax.scm= profile, it will precede
+=pyenv=. Thus, emacs will find the Guix profile's =jupyter= bin first. This
+assumes that for each project with a virtualenv, you need:
+
++ An =.envrc= is configured in each project root to load with =direnv=
++ Emacs with =envrc.el= installed which ensures that the proper paths are
+  prepended for all buffers initialized from within that project's directories.
+
+Only if the =.envrc= has loaded for the buffers will it find the =pyenv=
+shims. Still this depends on the shell functions in =.config/direnv/direnvrc=
+being discovered and successfully modifying path. Pyenv, python and jupyter are
+going to be messy anyways -- with or without Guix/Nix/Scimax and this is
+definitely not the fault of scimax
+
+**** 2. Adding jupyter to python's default pyenv
+
+Pyenv searches the directory tree recursively until it encounters
+=.pyenv-version= and =.pyenv-virtualenv=, the latter of which should only really
+be used in specific projects.
+
+However, this actually doesn't work... I have jupyter installed as
+=/usr/bin/jupyter= in the system python and pyenv's 3.10.11. Either way, it hits
+the pyenv shim and fails.
+
+**** 3. Adding a pyenv virtualenv under scimax
+
+If you configure this while scimax is open, you may need to reload Emacs.
+
+***** Setup direnv for pyenv
+
+Add a =.envrc= for the scimax Emacs config
+
+#+begin_src sh :eval no
+# -*- mode: sh; -*-
+[[ -f ".python-version" ]] && py_version="$(head .python-version)" || py_version="3.10.11"
+[[ -f ".python-virtualenv" ]] && py_venv="$(head .python-virtualenv)" || py_venv="$(basename $PWD)"
+
+#use python ${pyversion}
+
+# Create the virtualenv if not yet done (just depend on .python-version for this)
+layout virtualenv ${py_version} ${py_venv}
+layout activate ${py_venv}-${py_version}
++end_src
+
+Ensure =direnv= recognizes these functions, loaded in =direnvrc=
+
+,#+begin_src sh
+# :tangle .config/direnv/direnvrc :shebang #!/bin/sh
+
+# use a specific pyenv version
+use_python() {
+    if [ -n "$(which pyenv)" ]; then
+        local pyversion=$1
+        pyenv local ${pyversion}
+    fi
+}
+
+layout_virtualenv() {
+    local pyversion=$1
+    local pvenv=$2
+    if [ -n "$(which pyenv virtualenv)" ]; then
+        pyenv virtualenv --force --quiet ${pyversion} ${pvenv}-${pyversion}
+    fi
+    pyenv local --unset
+}
+
+layout_activate() {
+    if [ -n "$(which pyenv)" ]; then
+        source $(pyenv root)/versions/$1/bin/activate
+    fi
+}
+#+end_src
+
+Then install =3.10.11= via pyenv. Bonus points if you build on your machine. The
+defaults /do not/ include critical optimizations (though a binary may).
+
+***** Setup The Virtualenv
+
+And echo the following to files inside the scimax Emacs config:
+
++ =echo 3.10.11 > ~/.emacs-scimax/.python-version=
++ =echo scimax-ipykernel > .python-virtualenv=
+
+Enter the directory, run =direnv allow= and check =python --version=.
+
+Then run:
+
++ =pip install ipykernel= and maybe jupyter
++ =pip install numpy scipy=
++ =python3 -m ipykernel install --user --name=scimax-ipykernel=
