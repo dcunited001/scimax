@@ -49,6 +49,26 @@ org-babel-default-header-args:jupyter-python
 Some of these are scimax-specific. For example =:results . "both"= captures both printed and returned values, which is most consistent with Jupyter notebooks. I set =:pandoc . "t"= to convert outputs like html to org format.
 
 
+#+BEGIN_SRC emacs-lisp
+;; testing alternate config
+(setq org-babel-default-header-args:jupyter-python
+      '((:results . "both")
+	(:session . "jupyter-python")
+	(:kernel . "scimax-ipykernel")
+	(:pandoc . "t")
+	(:exports . "both")
+	(:cache . "no")
+	(:noweb . "no")
+	(:hlines . "no")
+	(:tangle . "no")
+	(:eval . "never-export")))
+#+END_SRC
+
+#+RESULTS:
+: ((:results . both) (:session . jupyter-python) (:kernel . scimax-ipykernel) (:pandoc . t) (:exports . both) (:cache . no) (:noweb . no) (:hlines . no) (:tangle . no) (:eval . never-export))
+
+
+
 ** buffer specific kernels that close when you kill the buffer
 
 I find it confusing to have one kernel shared among many files. 
@@ -58,7 +78,7 @@ I find it confusing to have one kernel shared among many files.
 3. I want the kernel to shutdown and close when I close the buffer because I don't need it after that.
 
 You can set a buffer specific kernel with yasnippet: <jps
-#+PROPERTY: header-args:jupyter-python  :session jupyter-python-6186d1147f976aff2402c12bfd60de5e
+#+PROPERTY: header-args:jupyter-python  :session jupyter-python-133e374866bb37f5d574e1de0c44338d
 
 
 scimax closes kernels when you close their buffer.
@@ -76,9 +96,11 @@ for i in range(3):
 #+END_SRC
 
 #+RESULTS:
-: 0
-: 1
-: 2
+:RESULTS:
+0
+1
+2
+:END:
 
 
 #+BEGIN_SRC jupyter-python :results raw
@@ -89,7 +111,7 @@ for i in range(3):
 #+RESULTS:
 0
 1
-2
+2 
 
 [[elisp:(scimax-jupyter-advise)]] this advises emacs-jupyter the scimax way
 

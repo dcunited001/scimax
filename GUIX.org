@@ -40,6 +40,13 @@ file. Navigation features like this end up helping more than
 =which-keys= for learning new package commands, though the latter has
 variables like
 
+*** TODO remove chemacs config and any guix emacs emacs packages (except base)
+
++ scimax needs to manage its own dependencies and needs to be launched with
+  =-init-directory=, which is better anyways (emacs 29+)
++ using this with chemacs2 may end up bringing packages into =~/.emacs.d/elpa=
+  which will cause problems (see [[https://github.com/dcunited001/zettelkasten/blob/master/slips/20230917031310-emacs_pgtk_build.org][org-roam notes]])
++ simplify/update, recommend against not using Guix packages
 
 * Setup
 
